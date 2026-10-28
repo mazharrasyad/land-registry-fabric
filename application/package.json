@@ -1,0 +1,19 @@
+{
+  "name": "land-registry-app",
+  "version": "1.0.0",
+  "description": "REST API dan web demo sertifikat tanah di atas Hyperledger Fabric",
+  "main": "src/server.js",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@grpc/grpc-js": "^1.12.5",
+    "@hyperledger/fabric-gateway": "^1.7.1",
+    "express": "^4.21.2"
+  }
+}

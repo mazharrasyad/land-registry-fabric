@@ -1,0 +1,2 @@
+# Paksa LF agar script bash tetap jalan di WSL walau repo di-clone dari Windows.
+* text=auto eol=lf
