@@ -132,7 +132,26 @@ bash scripts/network-down.sh
 ```
 
 Variabel lingkungan opsional: `TEST_NETWORK_PATH` (default `~/fabric-samples/test-network`),
-`CHANNEL_NAME` (default `mychannel`), `CHAINCODE_NAME` (default `landregistry`), dan `PORT` (default `3000`).
+`CHANNEL_NAME` (default `mychannel`), `CHAINCODE_NAME` (default `landregistry`), `PORT` (default `3000`),
+`HOST` (default `0.0.0.0`), dan `BASE_PATH` (default `/`, mis. `/land-registry-fabric/` bila dipasang di subpath
+di belakang reverse proxy).
+
+### Deploy di VPS (subpath di belakang Nginx)
+
+```bash
+PORT=3100 HOST=127.0.0.1 BASE_PATH=/land-registry-fabric/ npm start
+```
+
+```nginx
+location ^~ /land-registry-fabric {
+    rewrite ^/land-registry-fabric/?(.*)$ /$1 break;
+    proxy_pass http://127.0.0.1:3100;
+    proxy_set_header Host $host;
+}
+```
+
+`scripts/network-up.sh` mempublikasikan port peer dan orderer hanya di `127.0.0.1`,
+karena port Docker tidak tersaring oleh UFW.
 
 ### Menjalankan Unit Test Chaincode (tanpa Fabric)
 

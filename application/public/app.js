@@ -5,8 +5,9 @@ let sertifikat = [];
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const tanggal = (iso) => (iso ? new Date(iso).toLocaleString('id-ID') : '-');
 
+// URL relatif terhadap halaman, supaya web tetap jalan di subpath (mis. /land-registry-fabric/).
 async function api(metode, url, body) {
-    const res = await fetch(url, {
+    const res = await fetch(url.replace(/^\//, ''), {
         method: metode,
         headers: { 'Content-Type': 'application/json' },
         body: body ? JSON.stringify(body) : undefined,

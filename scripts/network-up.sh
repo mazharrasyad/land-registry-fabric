@@ -16,8 +16,11 @@ fi
 export PATH="$TEST_NETWORK/../bin:$PATH"
 cd "$TEST_NETWORK"
 
+# Port Docker melewati firewall (UFW), jadi publikasikan port peer/orderer hanya di localhost.
+sed -i -E 's/^(\s*- )"?([0-9]+:[0-9]+)"?\s*$/\1"127.0.0.1:\2"/' compose/compose-test-net.yaml
+
 ./network.sh down
-./network.sh up createChannel -c "$CHANNEL" -ca
+./network.sh up createChannel -c "$CHANNEL"
 ./network.sh deployCC -c "$CHANNEL" -ccn "$CC_NAME" -ccp "$ROOT/chaincode" -ccl typescript -cci InitLedger
 
 echo
