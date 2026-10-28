@@ -164,18 +164,20 @@ npm test
 
 ## Skenario Demo Presentasi (±5 menit)
 
-1. **Tab BPN**: terbitkan sertifikat `SHM-3271-0003` atas nama **Budi Santoso** (form sudah terisi).
-2. **Tab Notaris / PPAT**: ajukan balik nama ke **Sari Wulandari** dengan akta `AJB-001/2026`.
-3. **Tab BPN**: klik **Sahkan** pada pengajuan. Pemilik berganti menjadi Sari.
-4. **Tab Cek Sertifikat**: cek `SHM-3271-0003`. Riwayat lengkap tampil beserta ID transaksi.
-5. **Tab Simulasi Mafia Tanah**: pilih `SHM-3271-0003`, lalu jalankan serangan:
-   - *Sertifikat ganda* → ditolak: `SERTIFIKAT GANDA DITOLAK`
-   - *Menjual tanah bukan miliknya* (NIK Budi) → ditolak: `NIK penjual bukan pemilik sah`
-   - *PPAT mengesahkan sendiri* → ditolak: `AKSES DITOLAK`
-   - Blokir sertifikat di tab BPN, lalu *jual tanah diblokir* → ditolak
+1. **Buat Sertifikat**: terbitkan `SHM-3271-0003` atas nama **Budi Santoso** (form sudah terisi).
+   Gambar sertifikat muncul lengkap dengan sketsa bidang tanah, QR verifikasi, dan nomor blok tempat ia tercatat.
+2. **Balik Nama**: PPAT mengajukan balik nama ke **Sari Wulandari** (akta `AJB-001/2026`),
+   lalu BPN klik **Sahkan**. Pemilik berganti menjadi Sari.
+3. **Cek & Riwayat**: cek `SHM-3271-0003` (atau pindai QR-nya). Riwayat tampil sebagai urutan transaksi,
+   masing-masing dengan nomor bloknya: terbit → diajukan → disahkan.
+4. **Blockchain**: klik salah satu nomor blok untuk membuka diagram rantai blok.
+   - Setiap blok menampilkan `hash` miliknya dan `prev` (hash blok sebelumnya). Warnanya sama, jadi
+     terlihat bahwa blok saling terkunci.
+   - Klik sebuah blok untuk melihat isinya: fungsi chaincode, argumen, pengirim (BPN/PPAT), waktu, dan ID transaksi.
+   - Blok #0–#5 adalah pembuatan channel dan pemasangan smart contract. Data sertifikat dimulai dari blok #6.
 
-Setiap penolakan dilakukan oleh **chaincode di peer**, bukan oleh tampilan web.
-Hasilnya terlihat di panel **Log Transaksi**.
+Hash blok dihitung ulang oleh aplikasi dari header blok (SHA-256 atas ASN.1 `number`, `previousHash`,
+`dataHash`) dan cocok dengan hash yang dilaporkan Fabric (`GetChainInfo`).
 
 ## REST API
 
@@ -185,6 +187,8 @@ Hasilnya terlihat di panel **Log Transaksi**.
 | GET | `/api/sertifikat/:nomor` | Detail sertifikat |
 | GET | `/api/sertifikat/:nomor/riwayat` | Riwayat perubahan |
 | GET | `/api/bidang/:nib` | Cari sertifikat berdasarkan NIB |
+| GET | `/api/blockchain?sampai=N&jumlah=8` | Blok terbaru (hash, prev hash, isi transaksi) |
+| GET | `/api/blok/:nomor` | Satu blok |
 | POST | `/api/:peran/terbitkan` | Body: `nomor, nib, lokasi, luasM2, nikPemilik, namaPemilik` |
 | POST | `/api/:peran/ajukan-balik-nama` | Body: `nomor, nikPenjual, nikPembeli, namaPembeli, nomorAkta` |
 | POST | `/api/:peran/sahkan/:nomor` | Mengesahkan balik nama |
@@ -193,7 +197,8 @@ Hasilnya terlihat di panel **Log Transaksi**.
 | POST | `/api/:peran/buka-blokir/:nomor` | Membuka blokir |
 
 `:peran` adalah `bpn` (identitas Org1) atau `ppat` (identitas Org2). Transaksi dari peran yang salah
-tetap dikirim ke jaringan dan akan **ditolak oleh chaincode**.
+tetap dikirim ke jaringan dan akan **ditolak oleh chaincode**. Respons transaksi berisi `data`,
+`blok` (nomor blok tempat transaksi tercatat), dan `txId`.
 
 ## Batasan Prototype
 

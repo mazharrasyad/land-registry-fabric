@@ -14,6 +14,7 @@
   "dependencies": {
     "@grpc/grpc-js": "^1.12.5",
     "@hyperledger/fabric-gateway": "^1.7.1",
+    "@hyperledger/fabric-protos": "^0.3.7",
     "express": "^4.21.2"
   }
 }

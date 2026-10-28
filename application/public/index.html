@@ -6,6 +6,7 @@
   <base href="/">
   <title>Sertifikat Tanah — Hyperledger Fabric</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
 </head>
 <body>
   <header>
@@ -13,20 +14,51 @@
       <h1>Sertifikat Tanah di Blockchain</h1>
       <p>Prototype pencatatan sertifikat &amp; balik nama dengan Hyperledger Fabric</p>
     </div>
-    <span class="badge">Channel: mychannel · Chaincode: landregistry</span>
+    <span class="badge" id="info-rantai">Channel: mychannel · Chaincode: landregistry</span>
   </header>
 
   <nav>
-    <button class="tab aktif" data-tab="publik">Cek Sertifikat (Publik)</button>
-    <button class="tab" data-tab="bpn">BPN</button>
-    <button class="tab" data-tab="ppat">Notaris / PPAT</button>
-    <button class="tab" data-tab="simulasi">Simulasi Mafia Tanah</button>
+    <button class="tab aktif" data-tab="buat">1. Buat Sertifikat</button>
+    <button class="tab" data-tab="balik-nama">2. Balik Nama</button>
+    <button class="tab" data-tab="cek">3. Cek &amp; Riwayat</button>
+    <button class="tab" data-tab="blockchain">4. Blockchain</button>
   </nav>
 
   <main>
     <section class="kolom-utama">
-      <!-- PUBLIK -->
-      <div class="panel" id="tab-publik">
+      <!-- BUAT SERTIFIKAT -->
+      <div class="panel" id="tab-buat">
+        <h2>Terbitkan Sertifikat Baru <small>dilakukan oleh BPN (Org1MSP)</small></h2>
+        <form id="form-terbitkan" class="grid">
+          <label>Nomor sertifikat<input name="nomor" value="SHM-3271-0003" required></label>
+          <label>NIB bidang tanah<input name="nib" value="10.32.71.01.00003" required></label>
+          <label class="lebar">Lokasi<input name="lokasi" value="Kel. Tegal Gundil, Kec. Bogor Utara, Kota Bogor" required></label>
+          <label>Luas (m²)<input name="luasM2" type="number" min="1" value="120" required></label>
+          <label>NIK pemilik<input name="nikPemilik" value="3271010101800001" required></label>
+          <label class="lebar">Nama pemilik<input name="namaPemilik" value="Budi Santoso" required></label>
+          <button class="lebar">Terbitkan &amp; catat ke blockchain</button>
+        </form>
+        <div id="hasil-terbit"></div>
+      </div>
+
+      <!-- BALIK NAMA -->
+      <div class="panel tersembunyi" id="tab-balik-nama">
+        <h2>Langkah A — PPAT Mengajukan Balik Nama <small>Org2MSP</small></h2>
+        <form id="form-ajukan" class="grid">
+          <label class="lebar">Sertifikat<select name="nomor" class="pilih-sertifikat"></select></label>
+          <label>NIK penjual (pemilik saat ini)<input name="nikPenjual" value="3271010101800001" required></label>
+          <label>Nomor Akta Jual Beli<input name="nomorAkta" value="AJB-001/2026" required></label>
+          <label>NIK pembeli<input name="nikPembeli" value="3271024404900002" required></label>
+          <label>Nama pembeli<input name="namaPembeli" value="Sari Wulandari" required></label>
+          <button class="lebar">Ajukan ke BPN</button>
+        </form>
+
+        <h2>Langkah B — BPN Mengesahkan <small>Org1MSP</small></h2>
+        <div id="daftar-pengajuan" class="kosong">Belum ada pengajuan.</div>
+      </div>
+
+      <!-- CEK & RIWAYAT -->
+      <div class="panel tersembunyi" id="tab-cek">
         <h2>Cek Sertifikat</h2>
         <form id="form-cek" class="baris">
           <select name="jenis">
@@ -39,94 +71,33 @@
         <div id="hasil-cek"></div>
       </div>
 
-      <!-- BPN -->
-      <div class="panel tersembunyi" id="tab-bpn">
-        <h2>Terbitkan Sertifikat <small>(identitas Org1MSP / BPN)</small></h2>
-        <form id="form-terbitkan" class="grid">
-          <label>Nomor sertifikat<input name="nomor" value="SHM-3271-0003" required></label>
-          <label>NIB bidang tanah<input name="nib" value="10.32.71.01.00003" required></label>
-          <label class="lebar">Lokasi<input name="lokasi" value="Kel. Tegal Gundil, Kec. Bogor Utara, Kota Bogor" required></label>
-          <label>Luas (m²)<input name="luasM2" type="number" value="120" required></label>
-          <label>NIK pemilik<input name="nikPemilik" value="3271010101800001" required></label>
-          <label class="lebar">Nama pemilik<input name="namaPemilik" value="Budi Santoso" required></label>
-          <button class="lebar">Terbitkan sertifikat</button>
-        </form>
-
-        <h2>Pengajuan Balik Nama Menunggu Pengesahan</h2>
-        <div id="daftar-pengajuan" class="kosong">Belum ada pengajuan.</div>
-
-        <h2>Blokir Sertifikat</h2>
-        <form id="form-blokir" class="baris">
-          <select name="nomor" class="pilih-sertifikat"></select>
-          <input name="alasan" placeholder="Alasan, mis. sengketa waris" value="Sengketa waris di pengadilan">
-          <button>Blokir</button>
-          <button type="button" id="btn-buka-blokir" class="sekunder">Buka blokir</button>
-        </form>
-      </div>
-
-      <!-- PPAT -->
-      <div class="panel tersembunyi" id="tab-ppat">
-        <h2>Ajukan Balik Nama (Akta Jual Beli) <small>(identitas Org2MSP / PPAT)</small></h2>
-        <form id="form-ajukan" class="grid">
-          <label class="lebar">Sertifikat<select name="nomor" class="pilih-sertifikat"></select></label>
-          <label>NIK penjual<input name="nikPenjual" value="3271010101800001" required></label>
-          <label>Nomor akta (AJB)<input name="nomorAkta" value="AJB-001/2026" required></label>
-          <label>NIK pembeli<input name="nikPembeli" value="3271024404900002" required></label>
-          <label>Nama pembeli<input name="namaPembeli" value="Sari Wulandari" required></label>
-          <button class="lebar">Ajukan ke BPN</button>
-        </form>
-        <p class="catatan">Setelah diajukan, status sertifikat menjadi <b>PROSES_BALIK_NAMA</b> dan menunggu pengesahan BPN.</p>
-      </div>
-
-      <!-- SIMULASI -->
-      <div class="panel tersembunyi" id="tab-simulasi">
-        <h2>Simulasi Serangan Mafia Tanah</h2>
-        <p class="catatan">Setiap serangan dikirim sebagai transaksi sungguhan ke jaringan. Penolakan datang dari chaincode di peer, bukan dari tampilan web.</p>
-        <label class="lebar">Sertifikat target<select id="sim-nomor" class="pilih-sertifikat"></select></label>
-
-        <div class="serangan">
-          <div>
-            <h3>1. Sertifikat ganda</h3>
-            <p>BPN "oknum" menerbitkan sertifikat baru untuk bidang tanah (NIB) yang sudah terdaftar.</p>
-          </div>
-          <button data-serangan="ganda" class="bahaya">Coba serang</button>
+      <!-- BLOCKCHAIN -->
+      <div class="panel tersembunyi" id="tab-blockchain">
+        <h2>Rantai Blok di Ledger
+          <button id="btn-muat-blok" class="sekunder kecil">Muat ulang</button>
+        </h2>
+        <p class="catatan">Setiap blok menyimpan <b>hash blok sebelumnya</b>. Warna di kotak
+          <i>prev</i> selalu sama dengan warna <i>hash</i> blok di kirinya. Kalau satu blok lama diubah,
+          hash-nya berubah dan rantainya putus. Klik sebuah blok untuk melihat isinya.</p>
+        <div class="rantai-wrap">
+          <button id="btn-blok-lama" class="sekunder kecil">← Blok lebih lama</button>
+          <div id="rantai" class="rantai"></div>
         </div>
-        <div class="serangan">
-          <div>
-            <h3>2. Menjual tanah yang bukan miliknya</h3>
-            <p>PPAT mengajukan balik nama dengan NIK penjual
-              <input id="sim-nik" value="3271010101800001" class="kecil"> (mis. pemilik lama yang sudah menjual).</p>
-          </div>
-          <button data-serangan="bukan-pemilik" class="bahaya">Coba serang</button>
-        </div>
-        <div class="serangan">
-          <div>
-            <h3>3. PPAT mengesahkan balik nama sendiri</h3>
-            <p>PPAT mencoba melewati BPN dan langsung mengesahkan perpindahan hak.</p>
-          </div>
-          <button data-serangan="ppat-sahkan" class="bahaya">Coba serang</button>
-        </div>
-        <div class="serangan">
-          <div>
-            <h3>4. Menjual tanah yang sedang diblokir</h3>
-            <p>Blokir sertifikat dulu di tab BPN, lalu coba ajukan jual beli atas nama pemilik sah.</p>
-          </div>
-          <button data-serangan="diblokir" class="bahaya">Coba serang</button>
-        </div>
+        <div id="detail-blok"></div>
       </div>
 
       <div class="panel">
-        <h2>Semua Sertifikat di Ledger <button id="btn-muat" class="sekunder kecil">Muat ulang</button></h2>
+        <h2>Semua Sertifikat <button id="btn-muat" class="sekunder kecil">Muat ulang</button></h2>
         <div id="tabel-sertifikat" class="kosong">Memuat…</div>
       </div>
     </section>
 
     <aside class="panel log">
-      <h2>Log Transaksi</h2>
+      <h2>Aktivitas</h2>
       <ol id="log"></ol>
     </aside>
   </main>
 
-  <script src="app.js"></script>
+  <script src="app.js" defer></script>
 </body>
 </html>

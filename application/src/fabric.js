@@ -46,10 +46,10 @@ async function buatKoneksi(peran) {
         submitOptions: () => ({ deadline: Date.now() + 5000 }),
         commitStatusOptions: () => ({ deadline: Date.now() + 60000 }),
     });
-    return gateway.getNetwork(CHANNEL).getContract(CHAINCODE);
+    return gateway.getNetwork(CHANNEL);
 }
 
-function kontrak(peran) {
+function jaringan(peran) {
     if (!ORGS[peran]) {
         throw new Error(`Peran tidak dikenal: ${peran}`);
     }
@@ -60,13 +60,23 @@ function kontrak(peran) {
     return koneksi[peran];
 }
 
+async function kontrak(peran) {
+    return (await jaringan(peran)).getContract(CHAINCODE);
+}
+
 function parse(bytes) {
     const teks = decoder.decode(bytes);
     return teks ? JSON.parse(teks) : null;
 }
 
+// Kirim transaksi dan tunggu sampai masuk blok, supaya nomor bloknya bisa ditampilkan.
 async function submit(peran, fungsi, ...args) {
-    return parse(await (await kontrak(peran)).submitTransaction(fungsi, ...args.map(String)));
+    const commit = await (await kontrak(peran)).submitAsync(fungsi, { arguments: args.map(String) });
+    const status = await commit.getStatus();
+    if (!status.successful) {
+        throw new Error(`Transaksi ${status.transactionId} gagal divalidasi (kode ${status.code})`);
+    }
+    return { data: parse(commit.getResult()), blok: Number(status.blockNumber), txId: status.transactionId };
 }
 
 async function evaluate(peran, fungsi, ...args) {
@@ -82,4 +92,4 @@ function pesanError(err) {
     return detail.replace(/^.*chaincode response \d+, /s, '').replace(/^.*?Error: /s, '');
 }
 
-module.exports = { ORGS, submit, evaluate, pesanError };
+module.exports = { ORGS, CHANNEL, jaringan, submit, evaluate, pesanError };

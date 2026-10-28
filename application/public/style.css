@@ -82,18 +82,8 @@ th { color: var(--redup); font-weight: 600; font-size: 12px; text-transform: upp
 .kartu dt { color: var(--redup); }
 .kartu dd { margin: 0; }
 
-.timeline { list-style: none; padding: 0; margin: 12px 0 0; border-left: 2px solid var(--garis); }
-.timeline li { position: relative; padding: 0 0 14px 16px; }
-.timeline li::before { content: ""; position: absolute; left: -6px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--utama); }
-.timeline .meta { color: var(--redup); font-size: 12px; }
-.timeline code { font-size: 11px; word-break: break-all; }
-
 .pengajuan { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; border: 1px solid var(--garis); border-radius: 8px; padding: 12px; margin-bottom: 8px; }
 .pengajuan .aksi { display: flex; gap: 6px; }
-
-.serangan { display: flex; justify-content: space-between; align-items: center; gap: 16px; border: 1px solid var(--garis); border-radius: 8px; padding: 12px 14px; margin-top: 12px; }
-.serangan h3 { margin: 0 0 4px; font-size: 15px; }
-.serangan p { margin: 0; color: var(--redup); font-size: 13px; }
 
 .log { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
 #log { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
@@ -102,3 +92,87 @@ th { color: var(--redup); font-weight: 600; font-size: 12px; text-transform: upp
 #log li.gagal { background: var(--bahaya-muda); border-color: var(--bahaya); }
 #log .judul { font-weight: 600; }
 #log .waktu { color: var(--redup); font-size: 11px; }
+
+h3.sub { font-size: 15px; margin: 20px 0 6px; }
+.kecil-teks { font-size: 11px; }
+code { font-family: ui-monospace, Consolas, monospace; font-size: 12px; word-break: break-all; }
+
+/* ---------- Gambar sertifikat ---------- */
+.sertifikat-dok {
+  position: relative;
+  overflow: hidden;
+  margin-top: 12px;
+  border: 2px solid #b08d3c;
+  outline: 6px double #e8d9b0;
+  outline-offset: -12px;
+  border-radius: 6px;
+  padding: 26px 28px 20px;
+  background: linear-gradient(135deg, #fffdf6, #fbf5e4);
+  color: #2b2410;
+}
+.watermark {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 72px; font-weight: 800; letter-spacing: 8px;
+  color: rgba(176, 141, 60, .09); transform: rotate(-18deg);
+  pointer-events: none;
+}
+.dok-kepala { display: flex; align-items: center; gap: 14px; border-bottom: 1px solid #e0cf9f; padding-bottom: 12px; }
+.dok-kepala .status { margin-left: auto; }
+.lambang { width: 46px; height: 46px; border-radius: 50%; background: #b08d3c; color: #fff; display: grid; place-items: center; font-size: 24px; flex: none; }
+.dok-instansi { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #7a6427; }
+.dok-judul { font-size: 19px; font-weight: 800; letter-spacing: 1px; }
+.dok-nomor { font-size: 13px; color: #5c4c1f; }
+.dok-isi { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 16px; padding: 14px 0; position: relative; }
+.dok-isi dl { display: grid; grid-template-columns: 130px 1fr; gap: 6px 10px; margin: 0; font-size: 14px; }
+.dok-isi dt { color: #7a6427; }
+.dok-isi dd { margin: 0; }
+.dok-gambar { border: 1px solid #e0cf9f; border-radius: 6px; background: #fff; padding: 6px; align-self: start; }
+.sketsa { width: 100%; height: auto; display: block; }
+.dok-kaki { display: flex; gap: 14px; align-items: center; border-top: 1px solid #e0cf9f; padding-top: 12px; font-size: 13px; position: relative; }
+.qr { width: 84px; height: 84px; flex: none; background: #fff; padding: 0; }
+.qr img, .qr canvas { display: block; }
+@media (max-width: 640px) {
+  .dok-isi { grid-template-columns: 1fr; }
+  .dok-isi dl { grid-template-columns: 110px 1fr; }
+}
+
+.chip-blok {
+  display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  background: #eef0ff; color: #3b44b5; border: 1px solid #c9cdf7; cursor: pointer;
+}
+.chip-blok:hover { filter: none; background: #dfe3ff; }
+
+/* ---------- Riwayat ---------- */
+.timeline { list-style: none; padding: 0; margin: 8px 0 0; }
+.timeline li { display: grid; grid-template-columns: 90px 1fr; gap: 4px 12px; }
+.tl-blok { padding-top: 10px; }
+.tl-isi { border: 1px solid var(--garis); border-radius: 8px; padding: 10px 12px; }
+.tl-isi .meta { color: var(--redup); font-size: 12px; margin: 2px 0; }
+.tl-panah { grid-column: 2; color: var(--redup); text-align: center; line-height: 1; padding: 2px 0; }
+
+/* ---------- Rantai blok ---------- */
+.rantai-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.rantai { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding: 6px 2px 12px; width: 100%; }
+.blok {
+  flex: none; width: 170px; text-align: left; background: #fff; color: var(--teks);
+  border: 2px solid var(--garis); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;
+}
+.blok:hover { filter: none; border-color: var(--utama); }
+.blok.terpilih { border-color: var(--utama); box-shadow: 0 0 0 3px var(--utama-muda); }
+.blok-nomor { font-weight: 700; color: var(--utama); }
+.blok-ringkas { font-size: 13px; min-height: 34px; }
+.blok-hash { font-family: ui-monospace, Consolas, monospace; font-size: 11px; color: var(--redup); display: flex; align-items: center; gap: 6px; }
+.blok-tx { font-size: 11px; color: var(--redup); margin-top: 2px; }
+.titik { width: 10px; height: 10px; border-radius: 3px; flex: none; display: inline-block; }
+.sambungan { flex: none; align-self: center; padding: 0 6px; font-size: 20px; color: var(--utama); font-weight: 700; }
+.sambungan.putus { color: var(--bahaya); }
+.hash-list { display: grid; grid-template-columns: 170px 1fr; gap: 6px 10px; margin: 0 0 12px; font-size: 13px; }
+.hash-list dt { color: var(--redup); }
+.hash-list dd { margin: 0; display: flex; gap: 6px; align-items: flex-start; }
+.hash-list .titik { margin-top: 3px; }
+.kartu h3 { margin: 0 0 10px; font-size: 15px; }
+.tx { border-top: 1px solid var(--garis); padding: 10px 0 4px; }
+.tx-kepala { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.tx .meta { color: var(--redup); font-size: 12px; margin-top: 3px; }
+@media (max-width: 640px) { .hash-list { grid-template-columns: 1fr; } }

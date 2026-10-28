@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const express = require('express');
 const { ORGS, submit, evaluate, pesanError } = require('./fabric');
+const { infoRantai, ambilBlok, nomorBlokTransaksi, kosongkanCache } = require('./blockchain');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -28,8 +29,32 @@ const jalankan = (fn) => async (req, res) => {
 // Pembacaan publik memakai identitas BPN; siapa pun boleh membaca.
 app.get('/api/sertifikat', jalankan(() => evaluate('bpn', 'DaftarSertifikat')));
 app.get('/api/sertifikat/:nomor', jalankan((req) => evaluate('bpn', 'BacaSertifikat', req.params.nomor)));
-app.get('/api/sertifikat/:nomor/riwayat', jalankan((req) => evaluate('bpn', 'RiwayatSertifikat', req.params.nomor)));
+app.get('/api/sertifikat/:nomor/riwayat', jalankan(async (req) => {
+    const riwayat = await evaluate('bpn', 'RiwayatSertifikat', req.params.nomor);
+    for (const r of riwayat) {
+        r.blok = await nomorBlokTransaksi(r.txId);
+    }
+    return riwayat;
+}));
 app.get('/api/bidang/:nib', jalankan((req) => evaluate('bpn', 'CekBidangTanah', req.params.nib)));
+
+// Blok-blok terbaru, dari yang paling baru ke yang lama.
+app.get('/api/blockchain', jalankan(async (req) => {
+    const info = await infoRantai();
+    const teratas = info.tinggi - 1;
+    const terakhir = await ambilBlok(teratas);
+    if (terakhir.hash !== info.hashTerkini) {
+        kosongkanCache();
+    }
+    const sampai = Math.min(Number(req.query.sampai ?? teratas), teratas);
+    const jumlah = Math.min(Math.max(Number(req.query.jumlah) || 8, 1), 20);
+    const blok = [];
+    for (let n = sampai; n >= 0 && blok.length < jumlah; n--) {
+        blok.push(await ambilBlok(n));
+    }
+    return { ...info, blok };
+}));
+app.get('/api/blok/:nomor', jalankan((req) => ambilBlok(Number(req.params.nomor))));
 
 // Transaksi ditandatangani dengan identitas :peran (bpn / ppat). Hak akses ditegakkan
 // oleh chaincode, bukan oleh API, sehingga simulasi "peran yang salah" akan ditolak ledger.
