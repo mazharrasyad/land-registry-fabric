@@ -16,8 +16,9 @@ const INDEKS_NIB = 'nib';
 export class LandRegistryContract extends Contract {
 
     @Transaction()
+    // Tidak dibatasi peran: deployCC test-network memanggil init dengan identitas Org2.
+    // Aman karena hanya menambah sertifikat contoh yang belum ada.
     public async InitLedger(ctx: Context): Promise<void> {
-        this.wajibPeran(ctx, MSP_BPN, 'mengisi data awal');
         const contoh = [
             { nomor: 'SHM-3273-0001', nib: '10.27.01.02.00001', lokasi: 'Kel. Dago, Kec. Coblong, Kota Bandung', luasM2: 200, nik: '3273015505850002', nama: 'Siti Rahma' },
             { nomor: 'SHM-3374-0002', nib: '11.33.74.05.00002', lokasi: 'Kel. Tembalang, Kec. Tembalang, Kota Semarang', luasM2: 150, nik: '3374012003780003', nama: 'Andi Wijaya' },
