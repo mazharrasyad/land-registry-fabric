@@ -25,7 +25,7 @@ export class LandRegistryContract extends Contract {
         ];
         for (const c of contoh) {
             if (!(await this.ada(ctx, c.nomor))) {
-                await this.terbitkan(ctx, c.nomor, c.nib, c.lokasi, c.luasM2, { nik: c.nik, nama: c.nama });
+                await this.terbitkan(ctx, c.nomor, c.nib, c.lokasi, c.luasM2, { nik: c.nik, nama: c.nama }, 'BPN (data awal)');
             }
         }
     }
@@ -195,7 +195,7 @@ export class LandRegistryContract extends Contract {
     }
 
     private async terbitkan(ctx: Context, nomor: string, nib: string, lokasi: string,
-        luasM2: number, pemilik: Pemilik): Promise<Sertifikat> {
+        luasM2: number, pemilik: Pemilik, oleh?: string): Promise<Sertifikat> {
         if (await this.ada(ctx, nomor)) {
             throw new Error(`Sertifikat dengan nomor ${nomor} sudah ada`);
         }
@@ -220,13 +220,13 @@ export class LandRegistryContract extends Contract {
             diperbaruiPada: waktu,
         };
         await ctx.stub.putState(ctx.stub.createCompositeKey(INDEKS_NIB, [nib]), Buffer.from(nomor));
-        await this.simpan(ctx, s, `Sertifikat diterbitkan atas nama ${pemilik.nama}`);
+        await this.simpan(ctx, s, `Sertifikat diterbitkan atas nama ${pemilik.nama}`, oleh);
         return s;
     }
 
-    private async simpan(ctx: Context, s: Sertifikat, aksi: string): Promise<void> {
+    private async simpan(ctx: Context, s: Sertifikat, aksi: string, oleh?: string): Promise<void> {
         s.aksiTerakhir = aksi;
-        s.aksiOleh = NAMA_PERAN[ctx.clientIdentity.getMSPID()] ?? ctx.clientIdentity.getMSPID();
+        s.aksiOleh = oleh ?? NAMA_PERAN[ctx.clientIdentity.getMSPID()] ?? ctx.clientIdentity.getMSPID();
         s.diperbaruiPada = this.waktu(ctx);
         await ctx.stub.putState(s.nomor, Buffer.from(keJson(s)));
     }
