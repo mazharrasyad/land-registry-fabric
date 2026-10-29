@@ -87,17 +87,65 @@ async function muatAktivitas() {
     renderAktivitas();
 }
 
-// Kirim transaksi, lalu segarkan sertifikat, blok, dan aktivitas.
-async function transaksi(judul, metode, url, body) {
+// ---------- Indikator proses & notifikasi ----------
+
+// Kunci tombol selama proses dan tampilkan spinner, lalu kembalikan seperti semula.
+async function denganLoading(tombol, teks, fn) {
+    if (!tombol) return fn();
+    const asli = tombol.innerHTML;
+    tombol.disabled = true;
+    tombol.classList.add('memuat');
+    tombol.innerHTML = `<span class="spinner" aria-hidden="true"></span>${esc(teks)}`;
     try {
-        const hasil = await api(metode, url, body);
-        await Promise.all([muatSertifikat(), muatRantai(), muatAktivitas()]);
-        return hasil;
-    } catch (err) {
-        galat.push({ judul, pesan: err.message, waktu: new Date().toISOString() });
-        renderAktivitas();
-        return null;
+        return await fn();
+    } finally {
+        if (tombol.isConnected) {
+            tombol.disabled = false;
+            tombol.classList.remove('memuat');
+            tombol.innerHTML = asli;
+        }
     }
+}
+
+const IKON = { proses: '<span class="spinner" aria-hidden="true"></span>', ok: '✓', gagal: '✗' };
+
+function isiToast(el, jenis, judul, pesan) {
+    el.className = `toast ${jenis}`;
+    el.setAttribute('role', jenis === 'gagal' ? 'alert' : 'status');
+    el.innerHTML = `<div class="toast-ikon">${IKON[jenis]}</div>
+        <div class="toast-isi"><div class="toast-judul">${esc(judul)}</div><div>${pesan}</div></div>
+        <button type="button" class="toast-tutup" aria-label="Tutup">×</button>`;
+    clearTimeout(el._timer);
+    if (jenis !== 'proses') {
+        el._timer = setTimeout(() => el.remove(), jenis === 'ok' ? 7000 : 12000);
+    }
+}
+
+function toast(jenis, judul, pesan) {
+    const el = document.createElement('div');
+    isiToast(el, jenis, judul, pesan);
+    $('#toast').prepend(el);
+    return el;
+}
+
+// Kirim transaksi dengan indikator proses, notifikasi hasil, lalu segarkan data.
+async function transaksi(judul, metode, url, body, tombol) {
+    const info = toast('proses', `${judul}…`,
+        'Meminta persetujuan peer BPN &amp; PPAT, lalu menunggu transaksi masuk ke blok baru.');
+    return denganLoading(tombol, 'Memproses di blockchain…', async () => {
+        try {
+            const hasil = await api(metode, url, body);
+            await Promise.all([muatSertifikat(), muatRantai(), muatAktivitas()]);
+            isiToast(info, 'ok', `${judul} berhasil`,
+                `${esc(hasil.data?.aksiTerakhir || 'Transaksi tercatat')}<br>Tercatat di ${chipBlok(hasil.blok)}`);
+            return hasil;
+        } catch (err) {
+            galat.push({ judul, pesan: err.message, waktu: new Date().toISOString() });
+            renderAktivitas();
+            isiToast(info, 'gagal', `${judul} gagal`, `${esc(err.message)}<br>Transaksi tidak dicatat ke blockchain.`);
+            return null;
+        }
+    });
 }
 
 // ---------- Gambar sertifikat ----------
@@ -358,12 +406,12 @@ $('#btn-blok-lama').addEventListener('click', () => muatRantai(Math.max(rantai[0
 $('#form-cek').addEventListener('submit', (e) => {
     e.preventDefault();
     const { jenis, kunci } = dataForm(e.target);
-    cekSertifikat(jenis, kunci);
+    denganLoading(e.submitter, 'Mencari…', () => cekSertifikat(jenis, kunci));
 });
 
 $('#form-terbitkan').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const hasil = await transaksi('BPN menerbitkan sertifikat', 'POST', '/api/bpn/terbitkan', dataForm(e.target));
+    const hasil = await transaksi('Penerbitan sertifikat', 'POST', '/api/bpn/terbitkan', dataForm(e.target), e.submitter);
     if (hasil) {
         $('#hasil-terbit').innerHTML = `<h3 class="sub">Sertifikat berhasil diterbitkan</h3>${gambarSertifikat(hasil.data, hasil.blok)}`;
     }
@@ -371,17 +419,19 @@ $('#form-terbitkan').addEventListener('submit', async (e) => {
 
 $('#form-ajukan').addEventListener('submit', (e) => {
     e.preventDefault();
-    transaksi('PPAT mengajukan balik nama', 'POST', '/api/ppat/ajukan-balik-nama', dataForm(e.target));
+    transaksi('Pengajuan balik nama', 'POST', '/api/ppat/ajukan-balik-nama', dataForm(e.target), e.submitter);
 });
 
 document.addEventListener('click', (e) => {
     const t = e.target.closest('button');
     if (!t) return;
     if (t.dataset.sahkan) {
-        transaksi('BPN mengesahkan balik nama', 'POST', `/api/bpn/sahkan/${encodeURIComponent(t.dataset.sahkan)}`);
+        transaksi('Pengesahan balik nama', 'POST', `/api/bpn/sahkan/${encodeURIComponent(t.dataset.sahkan)}`, undefined, t);
     } else if (t.dataset.tolak) {
         const alasan = prompt('Alasan penolakan:', 'Berkas akta tidak lengkap');
-        if (alasan) transaksi('BPN menolak balik nama', 'POST', `/api/bpn/tolak/${encodeURIComponent(t.dataset.tolak)}`, { alasan });
+        if (alasan) transaksi('Penolakan balik nama', 'POST', `/api/bpn/tolak/${encodeURIComponent(t.dataset.tolak)}`, { alasan }, t);
+    } else if (t.classList.contains('toast-tutup')) {
+        t.closest('.toast').remove();
     } else if (t.dataset.lihat) {
         lihatSertifikat(t.dataset.lihat);
     } else if (t.dataset.blok) {

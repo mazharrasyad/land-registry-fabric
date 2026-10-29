@@ -182,6 +182,42 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: 12px; word-bre
 .tx .meta { color: var(--redup); font-size: 12px; margin-top: 3px; }
 @media (max-width: 640px) { .hash-list { grid-template-columns: 1fr; } }
 
+/* ---------- Indikator proses & notifikasi ---------- */
+button:disabled { cursor: progress; opacity: .85; filter: none; }
+button.memuat { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.spinner {
+  width: 14px; height: 14px; flex: none; display: inline-block;
+  border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%;
+  animation: putar .7s linear infinite;
+}
+@keyframes putar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2s; } }
+
+.toast-wadah {
+  position: fixed; top: 16px; right: 16px; z-index: 50;
+  display: flex; flex-direction: column; gap: 8px; width: min(380px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto; display: flex; gap: 10px; align-items: flex-start;
+  background: #fff; border: 1px solid var(--garis); border-left: 5px solid var(--redup);
+  border-radius: 8px; padding: 12px 12px 12px 14px; font-size: 13px;
+  box-shadow: 0 8px 24px rgba(15, 30, 40, .16);
+  animation: masuk .2s ease-out;
+}
+.toast.proses { border-left-color: #3b44b5; }
+.toast.ok { border-left-color: var(--utama); }
+.toast.gagal { border-left-color: var(--bahaya); }
+.toast-ikon { width: 20px; height: 20px; flex: none; display: grid; place-items: center; font-weight: 700; font-size: 15px; }
+.toast.proses .toast-ikon { color: #3b44b5; }
+.toast.ok .toast-ikon { color: var(--utama); }
+.toast.gagal .toast-ikon { color: var(--bahaya); }
+.toast-isi { flex: 1; min-width: 0; line-height: 1.45; }
+.toast-judul { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
+.toast-tutup { background: none; color: var(--redup); padding: 0 4px; font-size: 18px; line-height: 1; }
+.toast-tutup:hover { color: var(--teks); filter: none; }
+@keyframes masuk { from { opacity: 0; transform: translateY(-6px); } }
+
 /* ---------- Mobile ---------- */
 @media (max-width: 640px) {
   body { font-size: 14px; }
@@ -235,4 +271,6 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: 12px; word-bre
 
   .blok { width: 150px; }
   .tx-kepala { flex-wrap: wrap; }
+
+  .toast-wadah { top: auto; bottom: 12px; right: 12px; left: 12px; width: auto; }
 }
