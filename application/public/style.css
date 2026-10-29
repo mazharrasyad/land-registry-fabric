@@ -218,6 +218,34 @@ button.memuat { display: inline-flex; align-items: center; justify-content: cent
 .toast-tutup:hover { color: var(--teks); filter: none; }
 @keyframes masuk { from { opacity: 0; transform: translateY(-6px); } }
 
+/* ---------- Reset blockchain ---------- */
+.dorong-kanan { margin-left: auto; }
+body.terkunci { overflow: hidden; }
+.modal {
+  position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px;
+  background: rgba(15, 30, 40, .55);
+}
+.modal.tersembunyi { display: none; }
+.modal-kartu {
+  width: min(460px, 100%); background: #fff; border-radius: 12px; padding: 20px 22px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .25);
+}
+.modal-kartu h2 { margin: 0 0 6px; font-size: 18px; display: flex; align-items: center; gap: 10px; color: var(--bahaya); }
+.progres { height: 10px; border-radius: 999px; background: var(--garis); overflow: hidden; margin-top: 14px; }
+.progres-isi { height: 100%; width: 3%; border-radius: inherit; background: var(--utama); transition: width .6s ease; }
+.progres-info { display: flex; justify-content: space-between; font-size: 12px; color: var(--redup); margin-top: 4px; }
+.tahap { list-style: none; padding: 0; margin: 14px 0 0; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.tahap li { display: flex; align-items: center; gap: 10px; color: var(--redup); }
+.tahap li.selesai { color: var(--teks); }
+.tahap li.aktif { color: var(--teks); font-weight: 600; }
+.tahap-ikon {
+  width: 22px; height: 22px; flex: none; border-radius: 50%; display: grid; place-items: center;
+  border: 2px solid var(--garis); font-size: 12px; font-weight: 700;
+}
+.tahap li.selesai .tahap-ikon { background: var(--utama); border-color: var(--utama); color: #fff; }
+.tahap li.aktif .tahap-ikon { border-color: var(--utama); color: var(--utama); }
+.tahap-ikon .spinner { width: 12px; height: 12px; }
+
 /* ---------- Mobile ---------- */
 @media (max-width: 640px) {
   body { font-size: 14px; }

@@ -398,9 +398,18 @@ function bukaTab(nama) {
 }
 
 $$('.tab').forEach((t) => t.addEventListener('click', () => bukaTab(t.dataset.tab)));
-$('#btn-muat').addEventListener('click', muatSertifikat);
-$('#btn-muat-blok').addEventListener('click', () => muatRantai());
-$('#btn-muat-aktivitas').addEventListener('click', muatAktivitas);
+$('#btn-reset').addEventListener('click', async (e) => {
+    const yakin = confirm('Reset blockchain?\n\nSemua sertifikat dan blok akan DIHAPUS permanen, lalu diganti '
+        + '2 sertifikat contoh. Proses ±2–3 menit dan web tidak bisa dipakai selama itu.');
+    if (!yakin) return;
+    try {
+        await denganLoading(e.currentTarget, 'Memulai…', () => api('POST', '/api/reset'));
+    } catch (err) {
+        toast('gagal', 'Reset blockchain gagal dimulai', esc(err.message));
+        return;
+    }
+    pantauReset();
+});
 $('#btn-blok-lama').addEventListener('click', () => muatRantai(Math.max(rantai[0].nomor - 1, 0)));
 
 $('#form-cek').addEventListener('submit', (e) => {
@@ -441,10 +450,74 @@ document.addEventListener('click', (e) => {
     }
 });
 
-muatSertifikat();
-muatRantai();
-muatAktivitas();
+// ---------- Reset blockchain ----------
 
-// Tautan dari QR: ?cek=NOMOR langsung membuka sertifikat tersebut.
-const cekAwal = new URLSearchParams(location.search).get('cek');
-if (cekAwal) lihatSertifikat(cekAwal);
+const tidur = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function renderReset(st) {
+    const total = st.daftarTahap.length;
+    const aktif = st.berjalan ? Math.max(st.tahap, 0) : total;
+    const persen = Math.max(3, Math.round((aktif / total) * 100));
+    $('#progres-reset').style.width = `${persen}%`;
+    $('#persen-reset').textContent = `${persen}%`;
+    $('#waktu-reset').textContent = `${Math.max(0, Math.round((Date.now() - new Date(st.mulai)) / 1000))} detik`;
+    $('#tahap-reset').innerHTML = st.daftarTahap.map((label, i) => {
+        const keadaan = i < aktif ? 'selesai' : i === aktif ? 'aktif' : 'menunggu';
+        const ikon = { selesai: '✓', aktif: '<span class="spinner" aria-hidden="true"></span>', menunggu: '' }[keadaan];
+        return `<li class="${keadaan}"><span class="tahap-ikon">${ikon}</span>${esc(label)}</li>`;
+    }).join('');
+}
+
+// Tampilkan progres reset sampai selesai. Dipakai juga oleh pengunjung lain yang membuka web saat reset berjalan.
+async function pantauReset() {
+    $('#modal-reset').classList.remove('tersembunyi');
+    document.body.classList.add('terkunci');
+    let st;
+    for (;;) {
+        try {
+            st = await api('GET', '/api/reset/status');
+            renderReset(st);
+            if (!st.berjalan) break;
+        } catch (err) {
+            // Server sempat tidak terjangkau; coba lagi.
+        }
+        await tidur(1000);
+    }
+    $('#modal-reset').classList.add('tersembunyi');
+    document.body.classList.remove('terkunci');
+
+    if (st.berhasil) {
+        blokTerpilih = null;
+        galat.length = 0;
+        $('#hasil-terbit').innerHTML = '';
+        $('#hasil-cek').innerHTML = '';
+        await Promise.all([muatSertifikat(), muatRantai(), muatAktivitas()]);
+        const detik = Math.round((new Date(st.selesai) - new Date(st.mulai)) / 1000);
+        toast('ok', 'Blockchain berhasil direset',
+            `Ledger kembali ke awal dengan ${sertifikat.length} sertifikat contoh (selesai dalam ${detik} detik).`);
+    } else {
+        toast('gagal', 'Reset blockchain gagal', esc(st.pesan || 'Penyebab tidak diketahui'));
+        await Promise.all([muatSertifikat(), muatRantai(), muatAktivitas()]);
+    }
+}
+
+async function mulai() {
+    try {
+        const st = await api('GET', '/api/reset/status');
+        if (st.berjalan) {
+            await pantauReset();
+            return;
+        }
+    } catch (err) {
+        // Status reset tidak tersedia; lanjut memuat data seperti biasa.
+    }
+    muatSertifikat();
+    muatRantai();
+    muatAktivitas();
+
+    // Tautan dari QR: ?cek=NOMOR langsung membuka sertifikat tersebut.
+    const cekAwal = new URLSearchParams(location.search).get('cek');
+    if (cekAwal) lihatSertifikat(cekAwal);
+}
+
+mulai();

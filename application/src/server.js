@@ -1,8 +1,9 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const express = require('express');
-const { ORGS, CHAINCODE, submit, evaluate, pesanError } = require('./fabric');
+const { ORGS, CHAINCODE, putuskanSemua, submit, evaluate, pesanError } = require('./fabric');
 const { infoRantai, ambilBlok, nomorBlokTransaksi, kosongkanCache } = require('./blockchain');
+const { mulaiReset, statusReset } = require('./reset');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,6 +26,18 @@ const jalankan = (fn) => async (req, res) => {
         res.status(400).json({ ok: false, pesan: pesanError(err) });
     }
 };
+
+// Reset blockchain: jaringan dibuat ulang dari nol (±2-3 menit), progres dipantau lewat /status.
+app.get('/api/reset/status', (req, res) => res.json({ ok: true, data: statusReset() }));
+app.post('/api/reset', jalankan(() => mulaiReset(async () => {
+    putuskanSemua();
+    kosongkanCache();
+})));
+
+// Selama reset, ledger tidak bisa dibaca atau ditulis.
+app.use('/api', (req, res, next) => (statusReset().berjalan
+    ? res.status(503).json({ ok: false, pesan: 'Blockchain sedang direset, coba lagi setelah selesai.' })
+    : next()));
 
 // Pembacaan publik memakai identitas BPN; siapa pun boleh membaca.
 app.get('/api/sertifikat', jalankan(() => evaluate('bpn', 'DaftarSertifikat')));

@@ -77,7 +77,7 @@
       <!-- BLOCKCHAIN -->
       <div class="panel tersembunyi" id="tab-blockchain">
         <h2>Rantai Blok di Ledger
-          <button id="btn-muat-blok" class="sekunder kecil">Muat ulang</button>
+          <button id="btn-reset" class="bahaya kecil dorong-kanan">Reset Blockchain</button>
         </h2>
         <p class="catatan">Setiap blok menyimpan <b>hash blok sebelumnya</b>. Warna di kotak
           <i>prev</i> selalu sama dengan warna <i>hash</i> blok di kirinya. Kalau satu blok lama diubah,
@@ -90,18 +90,29 @@
       </div>
 
       <div class="panel">
-        <h2>Semua Sertifikat <button id="btn-muat" class="sekunder kecil">Muat ulang</button></h2>
+        <h2>Semua Sertifikat</h2>
         <div id="tabel-sertifikat" class="kosong">Memuat…</div>
       </div>
     </section>
 
     <aside class="panel log">
-      <h2>Aktivitas di Ledger <button id="btn-muat-aktivitas" class="sekunder kecil">Muat ulang</button></h2>
+      <h2>Aktivitas di Ledger</h2>
       <ol id="log"><li class="kosong">Memuat…</li></ol>
     </aside>
   </main>
 
   <div id="toast" class="toast-wadah" aria-live="polite"></div>
+
+  <div id="modal-reset" class="modal tersembunyi" role="dialog" aria-modal="true" aria-labelledby="judul-reset">
+    <div class="modal-kartu">
+      <h2 id="judul-reset"><span class="spinner" aria-hidden="true"></span> Mereset blockchain…</h2>
+      <p class="catatan">Jaringan Fabric dibuat ulang dari nol. Proses ini memakan waktu ±2–3 menit.
+        Jangan tutup halaman ini.</p>
+      <div class="progres"><div class="progres-isi" id="progres-reset"></div></div>
+      <div class="progres-info"><span id="persen-reset">0%</span><span id="waktu-reset">0 detik</span></div>
+      <ol id="tahap-reset" class="tahap"></ol>
+    </div>
+  </div>
 
   <script src="app.js" defer></script>
 </body>

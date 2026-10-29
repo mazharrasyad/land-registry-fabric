@@ -46,7 +46,21 @@ async function buatKoneksi(peran) {
         submitOptions: () => ({ deadline: Date.now() + 5000 }),
         commitStatusOptions: () => ({ deadline: Date.now() + 60000 }),
     });
+    tertutup.push(() => {
+        gateway.close();
+        client.close();
+    });
     return gateway.getNetwork(CHANNEL);
+}
+
+const tertutup = [];
+
+// Tutup semua koneksi; koneksi baru dibuat lagi saat dibutuhkan (mis. setelah jaringan direset).
+function putuskanSemua() {
+    tertutup.splice(0).forEach((tutup) => tutup());
+    for (const peran of Object.keys(koneksi)) {
+        delete koneksi[peran];
+    }
 }
 
 function jaringan(peran) {
@@ -92,4 +106,4 @@ function pesanError(err) {
     return detail.replace(/^.*chaincode response \d+, /s, '').replace(/^.*?Error: /s, '');
 }
 
-module.exports = { ORGS, CHANNEL, CHAINCODE, jaringan, submit, evaluate, pesanError };
+module.exports = { ORGS, CHANNEL, CHAINCODE, jaringan, putuskanSemua, submit, evaluate, pesanError };
