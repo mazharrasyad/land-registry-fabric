@@ -125,6 +125,13 @@ npm start
 
 Buka **http://localhost:3000** di browser Windows.
 
+Mengulang blockchain dari awal (hapus semua sertifikat dan blok, isi ulang 2 sertifikat contoh,
+lalu restart web demo bila berjalan sebagai service systemd):
+
+```bash
+bash scripts/reset-ledger.sh      # tambahkan -y untuk melewati konfirmasi
+```
+
 Mematikan jaringan dan menghapus seluruh data ledger:
 
 ```bash
