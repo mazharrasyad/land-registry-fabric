@@ -34,25 +34,68 @@ async function api(metode, url, body) {
     return json.data;
 }
 
-function catat(judul, ok, pesan) {
-    const li = document.createElement('li');
-    li.className = ok ? 'ok' : 'gagal';
-    li.innerHTML = `<div class="judul">${ok ? '✓' : '✗'} ${esc(judul)}</div><div>${pesan}</div>
-        <div class="waktu">${new Date().toLocaleTimeString('id-ID')}</div>`;
-    $('#log').prepend(li);
-}
-
 const chipBlok = (n) => `<button type="button" class="chip-blok" data-blok="${n}">Blok #${n}</button>`;
 
-// Kirim transaksi, catat nomor bloknya, lalu segarkan data.
+// ---------- Aktivitas ----------
+// Diambil dari transaksi di ledger, jadi sama untuk semua pengunjung.
+// Transaksi yang ditolak tidak pernah masuk blok, jadi hanya disimpan lokal di browser ini.
+let aktivitas = [];
+const galat = [];
+
+function uraikan(tx) {
+    const a = tx.args;
+    switch (tx.fungsi) {
+        case 'InitLedger': return ['Data awal dimuat', 'Sertifikat contoh dimasukkan ke ledger'];
+        case 'TerbitkanSertifikat': return ['Sertifikat diterbitkan', `${a[0]} atas nama ${a[5]} · ${a[3]} m²`];
+        case 'AjukanBalikNama': return ['Balik nama diajukan', `${a[0]} → ${a[3]} (akta ${a[4]})`];
+        case 'SahkanBalikNama': return ['Balik nama disahkan', a[0]];
+        case 'TolakBalikNama': return ['Balik nama ditolak', `${a[0]}: ${a[1]}`];
+        case 'BlokirSertifikat': return ['Sertifikat diblokir', `${a[0]}: ${a[1]}`];
+        case 'BukaBlokir': return ['Blokir dibuka', a[0]];
+        default: return [tx.fungsi, a.join(', ')];
+    }
+}
+
+function renderAktivitas() {
+    const item = [
+        ...galat.map((g) => ({ ...g, gagal: true })),
+        ...aktivitas,
+    ].sort((x, y) => (y.waktu || '').localeCompare(x.waktu || ''));
+    if (!item.length) {
+        $('#log').innerHTML = '<li class="kosong">Belum ada transaksi.</li>';
+        return;
+    }
+    $('#log').innerHTML = item.map((t) => {
+        if (t.gagal) {
+            return `<li class="gagal"><div class="judul">✗ ${esc(t.judul)}</div><div>${esc(t.pesan)}</div>
+                <div class="waktu">${tanggal(t.waktu)} · ditolak, tidak masuk blok</div></li>`;
+        }
+        const [judul, rincian] = uraikan(t);
+        // Data awal dikirim script deploy test-network (identitas admin Org2), bukan oleh petugas PPAT.
+        const oleh = t.fungsi === 'InitLedger' ? 'script deploy' : t.pengirim;
+        return `<li class="ok"><div class="judul">✓ ${esc(judul)}</div><div>${esc(rincian)}</div>
+            <div class="waktu">${tanggal(t.waktu)} · oleh <b>${esc(oleh)}</b> · ${chipBlok(t.blok)}</div></li>`;
+    }).join('');
+}
+
+async function muatAktivitas() {
+    try {
+        aktivitas = await api('GET', '/api/aktivitas');
+    } catch (err) {
+        aktivitas = [];
+    }
+    renderAktivitas();
+}
+
+// Kirim transaksi, lalu segarkan sertifikat, blok, dan aktivitas.
 async function transaksi(judul, metode, url, body) {
     try {
         const hasil = await api(metode, url, body);
-        catat(judul, true, `${esc(hasil.data?.aksiTerakhir || 'Berhasil')}<br>Tercatat di ${chipBlok(hasil.blok)}`);
-        await Promise.all([muatSertifikat(), muatRantai()]);
+        await Promise.all([muatSertifikat(), muatRantai(), muatAktivitas()]);
         return hasil;
     } catch (err) {
-        catat(judul, false, esc(err.message));
+        galat.push({ judul, pesan: err.message, waktu: new Date().toISOString() });
+        renderAktivitas();
         return null;
     }
 }
@@ -254,8 +297,14 @@ function renderRantai() {
           <div class="blok-tx">${b.transaksi.length} transaksi</div>
         </button>`;
     }).join('');
+    geserKeBlokTerpilih();
+}
+
+// Geser strip rantai agar blok terpilih terlihat (hanya bisa saat tab sedang tampil).
+function geserKeBlokTerpilih() {
     const el = $('#rantai');
-    el.scrollLeft = el.scrollWidth;
+    const target = el.querySelector('.blok.terpilih') || el.lastElementChild;
+    if (target) el.scrollLeft = target.offsetLeft - el.offsetLeft - (el.clientWidth - target.offsetWidth) / 2;
 }
 
 function pilihBlok(nomor) {
@@ -263,6 +312,7 @@ function pilihBlok(nomor) {
     if (!b) return;
     blokTerpilih = nomor;
     $$('.blok').forEach((el) => el.classList.toggle('terpilih', Number(el.dataset.pilihBlok) === nomor));
+    geserKeBlokTerpilih();
     $('#detail-blok').innerHTML = `<div class="kartu">
         <h3>Isi Blok #${b.nomor}</h3>
         <dl class="hash-list">
@@ -296,11 +346,13 @@ const dataForm = (form) => Object.fromEntries(new FormData(form));
 function bukaTab(nama) {
     $$('.tab').forEach((t) => t.classList.toggle('aktif', t.dataset.tab === nama));
     $$('[id^="tab-"]').forEach((p) => p.classList.toggle('tersembunyi', p.id !== `tab-${nama}`));
+    if (nama === 'blockchain') geserKeBlokTerpilih();
 }
 
 $$('.tab').forEach((t) => t.addEventListener('click', () => bukaTab(t.dataset.tab)));
 $('#btn-muat').addEventListener('click', muatSertifikat);
 $('#btn-muat-blok').addEventListener('click', () => muatRantai());
+$('#btn-muat-aktivitas').addEventListener('click', muatAktivitas);
 $('#btn-blok-lama').addEventListener('click', () => muatRantai(Math.max(rantai[0].nomor - 1, 0)));
 
 $('#form-cek').addEventListener('submit', (e) => {
@@ -341,6 +393,7 @@ document.addEventListener('click', (e) => {
 
 muatSertifikat();
 muatRantai();
+muatAktivitas();
 
 // Tautan dari QR: ?cek=NOMOR langsung membuka sertifikat tersebut.
 const cekAwal = new URLSearchParams(location.search).get('cek');

@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const express = require('express');
-const { ORGS, submit, evaluate, pesanError } = require('./fabric');
+const { ORGS, CHAINCODE, submit, evaluate, pesanError } = require('./fabric');
 const { infoRantai, ambilBlok, nomorBlokTransaksi, kosongkanCache } = require('./blockchain');
 
 const app = express();
@@ -55,6 +55,21 @@ app.get('/api/blockchain', jalankan(async (req) => {
     return { ...info, blok };
 }));
 app.get('/api/blok/:nomor', jalankan((req) => ambilBlok(Number(req.params.nomor))));
+
+// Aktivitas = transaksi sertifikat yang sah di ledger, terbaru dulu.
+app.get('/api/aktivitas', jalankan(async () => {
+    const { tinggi } = await infoRantai();
+    const hasil = [];
+    for (let n = tinggi - 1; n >= Math.max(0, tinggi - 100) && hasil.length < 15; n--) {
+        const blok = await ambilBlok(n);
+        for (const tx of blok.transaksi.slice().reverse()) {
+            if (tx.valid && tx.chaincode === CHAINCODE && hasil.length < 15) {
+                hasil.push({ ...tx, blok: n });
+            }
+        }
+    }
+    return hasil;
+}));
 
 // Transaksi ditandatangani dengan identitas :peran (bpn / ppat). Hak akses ditegakkan
 // oleh chaincode, bukan oleh API, sehingga simulasi "peran yang salah" akan ditolak ledger.

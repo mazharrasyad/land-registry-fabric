@@ -92,4 +92,4 @@ function pesanError(err) {
     return detail.replace(/^.*chaincode response \d+, /s, '').replace(/^.*?Error: /s, '');
 }
 
-module.exports = { ORGS, CHANNEL, jaringan, submit, evaluate, pesanError };
+module.exports = { ORGS, CHANNEL, CHAINCODE, jaringan, submit, evaluate, pesanError };

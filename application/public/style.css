@@ -41,7 +41,10 @@ nav { display: flex; gap: 4px; padding: 0 24px; background: #fff; border-bottom:
 .tab.aktif { color: var(--utama); border-bottom-color: var(--utama); font-weight: 600; }
 
 main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; padding: 16px 24px; align-items: start; }
-@media (max-width: 960px) { main { grid-template-columns: 1fr; } }
+@media (max-width: 960px) {
+  main { grid-template-columns: minmax(0, 1fr); }
+  .log { position: static; max-height: none; }
+}
 
 .panel { background: var(--panel); border: 1px solid var(--garis); border-radius: 10px; padding: 16px 20px; margin-bottom: 16px; }
 .panel h2 { font-size: 17px; margin: 4px 0 12px; display: flex; align-items: center; gap: 8px; }
@@ -91,7 +94,9 @@ th { color: var(--redup); font-weight: 600; font-size: 12px; text-transform: upp
 #log li.ok { background: var(--utama-muda); border-color: var(--utama); }
 #log li.gagal { background: var(--bahaya-muda); border-color: var(--bahaya); }
 #log .judul { font-weight: 600; }
-#log .waktu { color: var(--redup); font-size: 11px; }
+#log .waktu { color: var(--redup); font-size: 11px; margin-top: 4px; }
+#log li.kosong { border: 0; padding: 0; }
+#log .chip-blok { font-size: 11px; padding: 1px 7px; }
 
 h3.sub { font-size: 15px; margin: 20px 0 6px; }
 .kecil-teks { font-size: 11px; }
@@ -176,3 +181,58 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: 12px; word-bre
 .tx-kepala { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .tx .meta { color: var(--redup); font-size: 12px; margin-top: 3px; }
 @media (max-width: 640px) { .hash-list { grid-template-columns: 1fr; } }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 640px) {
+  body { font-size: 14px; }
+  header { padding: 14px 16px; gap: 8px; }
+  header h1 { font-size: 18px; }
+  header p { font-size: 13px; }
+  .badge { font-size: 12px; padding: 4px 8px; }
+  nav { display: grid; grid-template-columns: 1fr 1fr; padding: 0; gap: 0; overflow: visible; }
+  .tab { padding: 11px 8px; font-size: 14px; border-bottom-width: 3px; }
+  .tab:nth-child(-n+2) { border-top: 0; box-shadow: inset 0 -1px 0 var(--garis); }
+  main { padding: 12px; gap: 12px; }
+  .panel { padding: 14px; margin-bottom: 12px; }
+  .panel h2 { font-size: 16px; flex-wrap: wrap; row-gap: 2px; }
+  .panel h2 small { flex-basis: 100%; }
+
+  .grid { grid-template-columns: 1fr; }
+  .baris > select { width: 100%; }
+  .baris > input { min-width: 0; }
+  button { padding: 10px 14px; }
+  button.kecil { padding: 4px 10px; }
+
+  /* Tabel sertifikat menjadi kartu */
+  #tabel-sertifikat thead { display: none; }
+  #tabel-sertifikat table, #tabel-sertifikat tbody, #tabel-sertifikat tr, #tabel-sertifikat td { display: block; width: 100%; }
+  #tabel-sertifikat tr { border: 1px solid var(--garis); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; position: relative; }
+  #tabel-sertifikat td { border: 0; padding: 2px 0; }
+  #tabel-sertifikat td:nth-child(4) { position: absolute; top: 10px; right: 12px; width: auto; }
+  #tabel-sertifikat td:last-child { padding-top: 8px; }
+
+  .kartu { padding: 12px; }
+  .kartu dl { grid-template-columns: 1fr; gap: 2px; }
+  .kartu dd { margin-bottom: 6px; }
+
+  .pengajuan .aksi { width: 100%; }
+  .pengajuan .aksi button { flex: 1; }
+
+  .sertifikat-dok { padding: 18px 16px 14px; outline-offset: -9px; }
+  .watermark { font-size: 44px; letter-spacing: 4px; }
+  .dok-kepala { flex-wrap: wrap; gap: 10px; }
+  .dok-kepala .status { margin-left: 48px; }
+  .lambang { width: 38px; height: 38px; font-size: 20px; }
+  .dok-judul { font-size: 16px; }
+  .dok-isi dl { grid-template-columns: 1fr; gap: 0; font-size: 13px; }
+  .dok-isi dt { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; margin-top: 6px; }
+  .dok-gambar { max-width: 240px; }
+  .dok-kaki { align-items: flex-start; }
+
+  .timeline li { grid-template-columns: 1fr; gap: 4px; }
+  .tl-blok { padding-top: 0; }
+  .tl-panah { grid-column: 1; }
+
+  .blok { width: 150px; }
+  .tx-kepala { flex-wrap: wrap; }
+}
