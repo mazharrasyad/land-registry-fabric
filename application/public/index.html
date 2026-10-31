@@ -76,7 +76,18 @@
 
       <!-- BLOCKCHAIN -->
       <div class="panel tersembunyi" id="tab-blockchain">
-        <h2>Rantai Blok di Ledger
+        <h2>Status Node
+          <span id="ringkas-node" class="status PROSES_BALIK_NAMA dorong-kanan">Memeriksa…</span>
+        </h2>
+        <p class="catatan">Setiap server menjalankan peer dan salinan ledger sendiri. Saat data berubah, setiap node
+          memeriksa aturan terhadap ledger miliknya lalu memberi suara. Perubahan hanya dicatat bila mayoritas setuju.</p>
+        <div id="daftar-node" class="node-grid"></div>
+        <div id="daftar-orderer" class="orderer-baris"></div>
+
+        <h3 class="sub">Pemungutan Suara Terakhir</h3>
+        <div id="daftar-suara" class="kosong">Belum ada perubahan data sejak web dinyalakan.</div>
+
+        <h2 class="judul-rantai">Rantai Blok di Ledger
           <button id="btn-reset" class="bahaya kecil dorong-kanan">Reset Blockchain</button>
         </h2>
         <p class="catatan">Setiap blok menyimpan <b>hash blok sebelumnya</b>. Warna di kotak

@@ -2,11 +2,12 @@
 // menerjemahkannya menjadi data yang bisa digambar di web.
 const crypto = require('node:crypto');
 const { common, msp, peer } = require('@hyperledger/fabric-protos');
-const { CHANNEL, jaringan } = require('./fabric');
+const { CHANNEL, NODES, bacaDariNodeAktif } = require('./fabric');
 
 const { HeaderType, BlockMetadataIndex } = common;
 const NAMA_TIPE = { [HeaderType.CONFIG]: 'KONFIGURASI', [HeaderType.ENDORSER_TRANSACTION]: 'TRANSAKSI' };
 const NAMA_ORG = { Org1MSP: 'BPN', Org2MSP: 'PPAT', OrdererMSP: 'Orderer' };
+const nodeDariMsp = (mspId) => NODES.find((n) => n.mspId === mspId)?.id ?? mspId;
 
 // Blok tidak pernah berubah setelah tercatat, jadi aman disimpan di memori.
 const cacheBlok = new Map();
@@ -71,6 +72,7 @@ function bacaTransaksi(data, kodeValidasi) {
         chaincode: null,
         fungsi: null,
         args: [],
+        penyetuju: [],
     };
 
     if (ch.getType() === HeaderType.ENDORSER_TRANSACTION) {
@@ -82,6 +84,9 @@ function bacaTransaksi(data, kodeValidasi) {
         tx.chaincode = spec.getChaincodeId().getName();
         tx.fungsi = args[0] ?? null;
         tx.args = args.slice(1);
+        // Tanda tangan endorsement di dalam blok adalah bukti suara setuju tiap node.
+        tx.penyetuju = cap.getAction().getEndorsementsList().map((e) => nodeDariMsp(
+            msp.SerializedIdentity.deserializeBinary(e.getEndorser_asU8()).getMspid()));
     }
     return tx;
 }
@@ -100,8 +105,8 @@ function bacaBlok(bytes) {
 }
 
 async function qscc(fungsi, ...args) {
-    const network = await jaringan('bpn');
-    return network.getContract('qscc').evaluateTransaction(fungsi, CHANNEL, ...args.map(String));
+    return bacaDariNodeAktif('bpn', (network) => network.getContract('qscc')
+        .evaluateTransaction(fungsi, CHANNEL, ...args.map(String)));
 }
 
 async function infoRantai() {

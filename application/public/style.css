@@ -302,3 +302,18 @@ body.terkunci { overflow: hidden; }
 
   .toast-wadah { top: auto; bottom: 12px; right: 12px; left: 12px; width: auto; }
 }
+
+/* Status node & pemungutan suara */
+.judul-rantai { margin-top: 24px; }
+.node-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; margin-top: 10px; }
+.node-kartu { border: 1px solid var(--garis); border-left: 4px solid var(--utama); border-radius: 8px; padding: 10px 12px; }
+.node-kartu.LAYANAN_MATI { border-left-color: var(--kuning); background: var(--kuning-muda); }
+.node-kartu.SERVER_MATI { border-left-color: var(--bahaya); background: var(--bahaya-muda); }
+.node-kartu .meta { color: var(--redup); font-size: 12px; margin-top: 3px; }
+.node-kartu .meta.peringatan { color: var(--kuning); font-weight: 600; }
+.orderer-baris { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.suara-strip { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.suara { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.suara.SETUJU { background: var(--utama-muda); color: var(--utama); }
+.suara.TOLAK { background: var(--bahaya-muda); color: var(--bahaya); }
+.suara.TIDAK_HADIR { background: var(--garis); color: var(--redup); }

@@ -1,9 +1,10 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const express = require('express');
-const { ORGS, CHAINCODE, putuskanSemua, submit, evaluate, pesanError } = require('./fabric');
+const { ORGS, CHAINCODE, MODE_CLUSTER, putuskanSemua, submit, evaluate, pesanError } = require('./fabric');
 const { infoRantai, ambilBlok, nomorBlokTransaksi, kosongkanCache } = require('./blockchain');
 const { mulaiReset, statusReset } = require('./reset');
+const { statusJaringan } = require('./nodes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,21 +24,30 @@ const jalankan = (fn) => async (req, res) => {
     try {
         res.json({ ok: true, data: await fn(req) });
     } catch (err) {
-        res.status(400).json({ ok: false, pesan: pesanError(err) });
+        res.status(400).json({ ok: false, pesan: pesanError(err), pemungutan: err.pemungutan });
     }
 };
 
 // Reset blockchain: jaringan dibuat ulang dari nol (±2-3 menit), progres dipantau lewat /status.
-app.get('/api/reset/status', (req, res) => res.json({ ok: true, data: statusReset() }));
-app.post('/api/reset', jalankan(() => mulaiReset(async () => {
-    putuskanSemua();
-    kosongkanCache();
-})));
+// Di jaringan multi-server, reset hanya bisa dari master (scripts/cluster.sh reset): web tidak punya akses ke node lain.
+app.get('/api/reset/status', (req, res) => res.json({ ok: true, data: { ...statusReset(), tersedia: !MODE_CLUSTER } }));
+app.post('/api/reset', jalankan(() => {
+    if (MODE_CLUSTER) {
+        throw new Error('Reset jaringan multi-server dijalankan dari master: bash scripts/cluster.sh reset');
+    }
+    return mulaiReset(async () => {
+        putuskanSemua();
+        kosongkanCache();
+    });
+}));
 
 // Selama reset, ledger tidak bisa dibaca atau ditulis.
 app.use('/api', (req, res, next) => (statusReset().berjalan
     ? res.status(503).json({ ok: false, pesan: 'Blockchain sedang direset, coba lagi setelah selesai.' })
     : next()));
+
+// Kondisi nyata tiap node dan hasil pemungutan suara terakhir.
+app.get('/api/node', jalankan(() => statusJaringan()));
 
 // Pembacaan publik memakai identitas BPN; siapa pun boleh membaca.
 app.get('/api/sertifikat', jalankan(() => evaluate('bpn', 'DaftarSertifikat')));

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cp "$1/connection.json" "$3/connection.json"

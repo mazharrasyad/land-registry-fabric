@@ -30,9 +30,15 @@ async function api(metode, url, body) {
         body: body ? JSON.stringify(body) : undefined,
     });
     const json = await res.json();
-    if (!json.ok) throw new Error(json.pesan);
+    if (!json.ok) throw Object.assign(new Error(json.pesan), { pemungutan: json.pemungutan });
     return json.data;
 }
+
+const LABEL_SUARA = { SETUJU: 'Setuju', TOLAK: 'Tolak', TIDAK_HADIR: 'Tidak hadir' };
+const IKON_SUARA = { SETUJU: '✓', TOLAK: '✗', TIDAK_HADIR: '–' };
+const stripSuara = (suara) => `<div class="suara-strip">${suara.map((s) => `<span class="suara ${s.suara}"
+    title="${esc(s.alasan || LABEL_SUARA[s.suara])}">${IKON_SUARA[s.suara]} ${esc(s.node)}</span>`).join('')}</div>`;
+const jumlahSetuju = (suara) => suara.filter((s) => s.suara === 'SETUJU').length;
 
 const chipBlok = (n) => `<button type="button" class="chip-blok" data-blok="${n}">Blok #${n}</button>`;
 
@@ -131,18 +137,23 @@ function toast(jenis, judul, pesan) {
 // Kirim transaksi dengan indikator proses, notifikasi hasil, lalu segarkan data.
 async function transaksi(judul, metode, url, body, tombol) {
     const info = toast('proses', `${judul}…`,
-        'Meminta persetujuan peer BPN &amp; PPAT, lalu menunggu transaksi masuk ke blok baru.');
+        'Meminta suara semua node, lalu menunggu transaksi masuk ke blok baru.');
     return denganLoading(tombol, 'Memproses di blockchain…', async () => {
         try {
             const hasil = await api(metode, url, body);
-            await Promise.all([muatSertifikat(), muatRantai(), muatAktivitas()]);
+            await Promise.all([muatSertifikat(), muatRantai(), muatAktivitas(), muatNode()]);
+            const p = hasil.pemungutan;
             isiToast(info, 'ok', `${judul} berhasil`,
-                `${esc(hasil.data?.aksiTerakhir || 'Transaksi tercatat')}<br>Tercatat di ${chipBlok(hasil.blok)}`);
+                `${esc(hasil.data?.aksiTerakhir || 'Transaksi tercatat')}<br>
+                 Disetujui ${jumlahSetuju(p.suara)} dari ${p.suara.length} node (kuorum ${p.kuorum}) · ${chipBlok(hasil.blok)}
+                 ${stripSuara(p.suara)}`);
             return hasil;
         } catch (err) {
             galat.push({ judul, pesan: err.message, waktu: new Date().toISOString() });
             renderAktivitas();
-            isiToast(info, 'gagal', `${judul} gagal`, `${esc(err.message)}<br>Transaksi tidak dicatat ke blockchain.`);
+            muatNode();
+            isiToast(info, 'gagal', `${judul} gagal`, `${esc(err.message)}<br>Transaksi tidak dicatat ke blockchain.
+                ${err.pemungutan ? stripSuara(err.pemungutan.suara) : ''}`);
             return null;
         }
     });
@@ -305,6 +316,66 @@ function lihatSertifikat(nomor) {
     cekSertifikat('nomor', nomor);
 }
 
+// ---------- Status node ----------
+
+const LABEL_NODE = { AKTIF: 'Aktif', LAYANAN_MATI: 'Layanan mati', SERVER_MATI: 'Server mati' };
+const LABEL_HASIL = { DISETUJUI: 'Disetujui', DITOLAK: 'Ditolak', GAGAL: 'Gagal' };
+
+function kartuNode(n) {
+    let rincian;
+    if (n.status !== 'AKTIF') {
+        rincian = `<div class="meta">${esc(n.status === 'SERVER_MATI' ? 'Server tidak terjangkau' : n.alasan)}</div>
+            <div class="meta">Tidak bisa memberi suara</div>`;
+    } else {
+        rincian = `<div class="meta">Tinggi ledger: <b>${n.tinggi}</b> blok · ${n.ms} ms</div>
+            <div class="meta ${n.sinkron ? '' : 'peringatan'}">${n.sinkron ? '✓ Sinkron' : n.selisih > 0 ? `⚠ Tertinggal ${n.selisih} blok` : '⚠ Hash ledger berbeda'}</div>
+            <div class="meta ${n.chaincode ? '' : 'peringatan'}">${n.chaincode ? '✓ Bisa memberi suara' : '⚠ Chaincode mati, tidak bisa memberi suara'}</div>`;
+    }
+    return `<div class="node-kartu ${n.status}">
+        <div class="tx-kepala"><b>${esc(n.id)}</b><span class="status ${n.status === 'AKTIF' ? 'AKTIF' : 'DIBLOKIR'}">${LABEL_NODE[n.status]}</span></div>
+        <div class="meta">${esc(n.peran)} · ${esc(n.mspId)} · ${esc(n.ip)}</div>${rincian}</div>`;
+}
+
+function renderNode(st) {
+    const ringkas = $('#ringkas-node');
+    ringkas.className = `status ${st.kuorumTercapai ? 'AKTIF' : 'DIBLOKIR'} dorong-kanan`;
+    ringkas.textContent = `${st.aktif}/${st.total} node aktif · ${st.kuorumTercapai ? 'kuorum tercapai' : 'kuorum tidak tercapai'} (butuh ${st.kuorum})`;
+    $('#daftar-node').innerHTML = st.nodes.map(kartuNode).join('');
+    $('#daftar-orderer').innerHTML = `<span class="catatan">Orderer (Raft):</span> ${st.orderers.map((o) =>
+        `<span class="status ${o.aktif ? 'AKTIF' : 'DIBLOKIR'}">${esc(o.id)} · ${esc(o.node)} · ${o.aktif ? 'aktif' : 'mati'}</span>`).join(' ')}`;
+
+    const el = $('#daftar-suara');
+    if (!st.pemungutanTerakhir.length) {
+        el.className = 'kosong';
+        el.textContent = 'Belum ada perubahan data sejak web dinyalakan.';
+        return;
+    }
+    el.className = '';
+    el.innerHTML = st.pemungutanTerakhir.map((p) => `<div class="tx">
+        <div class="tx-kepala">
+          <b>${esc(NAMA_FUNGSI[p.fungsi] || p.fungsi)}</b>
+          <span class="status ${p.hasil === 'DISETUJUI' ? 'AKTIF' : 'DIBLOKIR'}">${LABEL_HASIL[p.hasil]} · ${jumlahSetuju(p.suara)}/${p.suara.length} setuju</span>
+        </div>
+        <div class="meta">${tanggal(p.waktu)} · diajukan ${esc(p.peran.toUpperCase())}${p.blok !== undefined ? ` · ${chipBlok(p.blok)}` : ''}</div>
+        ${p.alasan ? `<div class="meta">${esc(p.alasan)}</div>` : ''}
+        ${stripSuara(p.suara)}</div>`).join('');
+}
+
+async function muatNode() {
+    try {
+        renderNode(await api('GET', '/api/node'));
+    } catch (err) {
+        $('#ringkas-node').className = 'status DIBLOKIR dorong-kanan';
+        $('#ringkas-node').textContent = 'Status tidak tersedia';
+        $('#daftar-node').innerHTML = `<div class="kosong">Gagal memeriksa node: ${esc(err.message)}</div>`;
+    }
+}
+
+// Pantau selama tab Blockchain terbuka, supaya node yang mati/menyala langsung terlihat.
+setInterval(() => {
+    if (!document.hidden && !$('#tab-blockchain').classList.contains('tersembunyi')) muatNode();
+}, 10000);
+
 // ---------- Blockchain ----------
 
 function ringkasBlok(b) {
@@ -376,6 +447,7 @@ function pilihBlok(nomor) {
           <div class="meta">${tanggal(t.waktu)} · dikirim oleh <b>${esc(t.pengirim)}</b>
             ${t.chaincode ? ` · chaincode <code>${esc(t.chaincode)}</code>` : ''}</div>
           ${t.fungsi ? `<div class="meta">Fungsi <code>${esc(t.fungsi)}</code>${t.args.length ? `(${t.args.map((a) => `<code>${esc(a)}</code>`).join(', ')})` : '()'}</div>` : ''}
+          ${t.penyetuju?.length ? `<div class="meta">Suara setuju di blok ini (${t.penyetuju.length}): ${t.penyetuju.map((n) => `<span class="suara SETUJU">✓ ${esc(n)}</span>`).join(' ')}</div>` : ''}
           <div class="meta">tx <code>${esc(t.txId)}</code></div>
         </div>`).join('')}
       </div>`;
@@ -394,7 +466,10 @@ const dataForm = (form) => Object.fromEntries(new FormData(form));
 function bukaTab(nama) {
     $$('.tab').forEach((t) => t.classList.toggle('aktif', t.dataset.tab === nama));
     $$('[id^="tab-"]').forEach((p) => p.classList.toggle('tersembunyi', p.id !== `tab-${nama}`));
-    if (nama === 'blockchain') geserKeBlokTerpilih();
+    if (nama === 'blockchain') {
+        geserKeBlokTerpilih();
+        muatNode();
+    }
 }
 
 $$('.tab').forEach((t) => t.addEventListener('click', () => bukaTab(t.dataset.tab)));
@@ -504,6 +579,7 @@ async function pantauReset() {
 async function mulai() {
     try {
         const st = await api('GET', '/api/reset/status');
+        $('#btn-reset').classList.toggle('tersembunyi', !st.tersedia);
         if (st.berjalan) {
             await pantauReset();
             return;
@@ -514,6 +590,7 @@ async function mulai() {
     muatSertifikat();
     muatRantai();
     muatAktivitas();
+    muatNode();
 
     // Tautan dari QR: ?cek=NOMOR langsung membuka sertifikat tersebut.
     const cekAwal = new URLSearchParams(location.search).get('cek');

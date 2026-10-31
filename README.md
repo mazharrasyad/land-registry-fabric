@@ -160,6 +160,38 @@ location ^~ /land-registry-fabric {
 `scripts/network-up.sh` mempublikasikan port peer dan orderer hanya di `127.0.0.1`,
 karena port Docker tidak tersaring oleh UFW.
 
+### Deploy Multi-Server (setiap node memberi suara)
+
+Dijalankan dari master, tanpa Docker dan tanpa sudo. Setiap server menjadi satu organisasi dengan satu suara:
+
+| Node | Organisasi | Peran | Orderer Raft |
+|---|---|---|---|
+| node1 | `Org1MSP` | BPN (sekaligus web) | orderer1 |
+| node2 | `Org2MSP` | PPAT | orderer2 |
+| node3 | `Org3MSP` | Validator | — |
+| node4 | `Org4MSP` | Validator | orderer3 |
+| node5 | `Org5MSP` | Validator | — |
+
+```bash
+bash scripts/cluster.sh deploy       # Bangun dari nol; node yang mati dilewati (minimal 3 hidup)
+bash scripts/cluster.sh join node3   # Pasang node yang tadinya mati
+bash scripts/cluster.sh reset        # Hapus semua blok dan isi ulang data awal
+bash scripts/cluster.sh status       # Status proses tiap node
+bash scripts/cluster.sh start        # Nyalakan node lagi, mis. setelah server reboot
+bash scripts/cluster.sh autostart    # Opsional: crontab @reboot agar node menyala sendiri
+```
+
+Setiap perubahan data dikirim dulu ke semua node. Tiap node menjalankan chaincode terhadap ledger miliknya dan
+menjawab **setuju**, **tolak**, atau **tidak hadir**. Transaksi hanya dikirim ke orderer bila minimal 3 dari 5 setuju
+(`MAJORITY Endorsement`), dan peer memeriksa ulang tanda tangan para penyetuju saat menerima blok.
+Suara setuju tersimpan permanen di blok; suara pada transaksi yang ditolak hanya tersimpan di memori web.
+
+Karena semua node menjalankan chaincode yang sama, suara hanya berbeda bila ada node yang mati, tertinggal,
+atau ledger/kodenya berubah. Untuk aturan bisnis biasa, semua node hadir akan memberi jawaban yang sama.
+
+Tombol Reset di web disembunyikan pada mode ini karena web di node1 tidak punya akses ke node lain.
+Identitas semua organisasi masih dibuat terpusat di master; implementasi nyata sebaiknya tiap organisasi punya CA sendiri.
+
 ### Menjalankan Unit Test Chaincode (tanpa Fabric)
 
 ```bash
@@ -196,6 +228,7 @@ Hash blok dihitung ulang oleh aplikasi dari header blok (SHA-256 atas ASN.1 `num
 | GET | `/api/bidang/:nib` | Cari sertifikat berdasarkan NIB |
 | GET | `/api/blockchain?sampai=N&jumlah=8` | Blok terbaru (hash, prev hash, isi transaksi) |
 | GET | `/api/blok/:nomor` | Satu blok |
+| GET | `/api/node` | Status tiap node, kuorum, dan pemungutan suara terakhir |
 | POST | `/api/:peran/terbitkan` | Body: `nomor, nib, lokasi, luasM2, nikPemilik, namaPemilik` |
 | POST | `/api/:peran/ajukan-balik-nama` | Body: `nomor, nikPenjual, nikPembeli, namaPembeli, nomorAkta` |
 | POST | `/api/:peran/sahkan/:nomor` | Mengesahkan balik nama |
@@ -209,7 +242,7 @@ tetap dikirim ke jaringan dan akan **ditolak oleh chaincode**. Respons transaksi
 
 ## Batasan Prototype
 
-- Memakai `test-network` dari fabric-samples (1 peer per organisasi, 1 orderer). Belum siap produksi.
+- Mode lokal memakai `test-network` dari fabric-samples (1 peer per organisasi, 1 orderer). Belum siap produksi.
 - Pemilik tanah tidak punya identitas di jaringan. Keabsahan penjual diverifikasi PPAT lewat NIK.
 - Data pribadi (NIK) disimpan apa adanya demi kemudahan demo. Implementasi nyata sebaiknya memakai
   *private data collection* atau hash agar sesuai UU Pelindungan Data Pribadi.

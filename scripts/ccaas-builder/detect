@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# External builder chaincode-as-a-service: hanya menangani paket bertipe "ccaas".
+grep -q '"type":"ccaas"' "$2/metadata.json"
